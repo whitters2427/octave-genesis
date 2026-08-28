@@ -354,7 +354,7 @@
   <header>
     <div class="eyebrow">House visioning &middot; live tool</div>
     <h1>Event category board</h1>
-    <p class="subtitle">Sort event ideas into House and Subspace, cluster the ones that overlap, and set a quarterly target for each once the room agrees.</p>
+    <p class="subtitle">Sort event ideas into Gather and Host, cluster the ones that overlap, and set a quarterly target for each once the room agrees.</p>
   </header>
 
   <div class="toolbar">
@@ -374,17 +374,17 @@
     <div class="board">
       <div class="zone house" data-track="house">
         <div class="zone-head">
-          <span class="zone-title">House</span>
+          <span class="zone-title">Gather</span>
           <span class="zone-sub">community &middot; no revenue</span>
         </div>
         <div class="zone-body" id="houseBody" data-track="house"></div>
-        <button class="add-card-btn" data-track="house" style="margin-top:0.7rem;width:100%;">+ Add house category</button>
+        <button class="add-card-btn" data-track="house" style="margin-top:0.7rem;width:100%;">+ Add Gather category</button>
       </div>
 
       <div class="zone subspace" data-track="subspace">
         <div class="zone-head">
-          <span class="zone-title">Subspace</span>
-          <span class="zone-sub">revenue &middot; downstairs</span>
+          <span class="zone-title">Host</span>
+          <span class="zone-sub">revenue &middot; any space we open up</span>
         </div>
         <div class="budget-meter">
           <div class="budget-row">
@@ -395,7 +395,7 @@
           <div class="budget-note" id="budgetNote" hidden>Over budget — say the gap out loud before locking targets.</div>
         </div>
         <div class="zone-body" id="subspaceBody" data-track="subspace"></div>
-        <button class="add-card-btn" data-track="subspace" style="margin-top:0.7rem;width:100%;">+ Add subspace category</button>
+        <button class="add-card-btn" data-track="subspace" style="margin-top:0.7rem;width:100%;">+ Add Host category</button>
       </div>
     </div>
   </div>
@@ -613,7 +613,7 @@
         tr.className = track + '-row';
         var tdTrack = document.createElement('td');
         tdTrack.className = 'track-cell';
-        tdTrack.textContent = track === 'house' ? 'House' : 'Subspace';
+        tdTrack.textContent = track === 'house' ? 'Gather' : 'Host';
         var tdName = document.createElement('td');
         tdName.textContent = c.name;
         var tdEx = document.createElement('td');
@@ -667,7 +667,7 @@
     var lines = ['Track\tCategory\tExample event(s)\tTarget/quarter'];
     ['house','subspace'].forEach(function(track){
       byTrack(track).forEach(function(c){
-        lines.push((track === 'house' ? 'House' : 'Subspace') + '\t' + c.name + '\t' + c.examples.join(', ') + '\t' + (c.target||0));
+        lines.push((track === 'house' ? 'Gather' : 'Host') + '\t' + c.name + '\t' + c.examples.join(', ') + '\t' + (c.target||0));
       });
     });
     var text = lines.join('\n');
