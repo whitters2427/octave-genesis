@@ -1,0 +1,950 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stakeholder Proximity Map</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Karla:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root{
+    --bg: #e9e6dc;
+    --surface: #f7f5ee;
+    --surface-raised: #ffffff;
+    --ink: #29241f;
+    --ink-soft: #6b6255;
+    --ink-faint: #8f867a;
+    --rule: #d8d2c2;
+    --moss: #4f6b52;
+    --moss-soft: #dde6da;
+    --amber: #a6741f;
+    --amber-soft: #f0e2c4;
+    --warn: #b3402c;
+    --warn-soft: #f3ddd6;
+    --shadow: 0 1px 2px rgba(41,36,31,0.06), 0 6px 20px -8px rgba(41,36,31,0.18);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg: #1c1915;
+      --surface: #262220;
+      --surface-raised: #2d2926;
+      --ink: #ece5d8;
+      --ink-soft: #b3a996;
+      --ink-faint: #857c6f;
+      --rule: #3c3630;
+      --moss: #8fb694;
+      --moss-soft: #33413a;
+      --amber: #dba949;
+      --amber-soft: #453722;
+      --warn: #e3765a;
+      --warn-soft: #4a2e26;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 10px 30px -10px rgba(0,0,0,0.5);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg: #1c1915;
+    --surface: #262220;
+    --surface-raised: #2d2926;
+    --ink: #ece5d8;
+    --ink-soft: #b3a996;
+    --ink-faint: #857c6f;
+    --rule: #3c3630;
+    --moss: #8fb694;
+    --moss-soft: #33413a;
+    --amber: #dba949;
+    --amber-soft: #453722;
+    --warn: #e3765a;
+    --warn-soft: #4a2e26;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 10px 30px -10px rgba(0,0,0,0.5);
+  }
+
+  *{ box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body{
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Karla', -apple-system, BlinkMacSystemFont, sans-serif;
+    line-height: 1.5;
+  }
+  h1,h2,h3{ font-family: 'Fraunces', Georgia, serif; text-wrap: balance; font-weight: 600; margin: 0; }
+  .mono{ font-family: 'IBM Plex Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+  button{ font: inherit; }
+
+  .page{ max-width: 1000px; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+
+  header{ margin-bottom: 1.4rem; }
+  .eyebrow{
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 0.5rem;
+  }
+  h1{ font-size: clamp(1.5rem, 4vw, 2rem); }
+  .subtitle{ color: var(--ink-soft); margin-top: 0.4rem; font-size: 0.96rem; max-width: 62ch; }
+
+  .toolbar{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.8rem;
+    margin: 1.4rem 0 0.5rem;
+  }
+  .view-toggle{
+    display: flex;
+    background: var(--surface);
+    border-radius: 8px;
+    padding: 0.25rem;
+    box-shadow: var(--shadow);
+  }
+  .view-toggle button{
+    border: none;
+    background: transparent;
+    color: var(--ink-soft);
+    padding: 0.4rem 0.9rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85rem;
+  }
+  .view-toggle button.active{ background: var(--surface-raised); color: var(--ink); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+  .toolbar-actions{ display: flex; gap: 0.6rem; }
+  .action-btn{
+    border: 1px solid var(--rule);
+    background: var(--surface-raised);
+    color: var(--ink);
+    border-radius: 8px;
+    padding: 0.45rem 0.85rem;
+    cursor: pointer;
+    font-size: 0.82rem;
+  }
+  .action-btn:hover{ background: var(--moss-soft); }
+  .action-btn:focus-visible, .view-toggle button:focus-visible{ outline: 2px solid var(--amber); outline-offset: 2px; }
+
+  .hint{ font-size: 0.8rem; color: var(--ink-faint); margin-bottom: 1.2rem; max-width: 60ch; }
+
+  /* ---- radial map ---- */
+  .orbit-wrap{ display: flex; justify-content: center; padding: 1rem 0 2rem; }
+  .orbit{
+    position: relative;
+    width: min(94vw, 620px);
+    aspect-ratio: 1 / 1;
+  }
+  .ring-guide{
+    position: absolute;
+    top: 50%; left: 50%;
+    border-radius: 50%;
+    border: 1.5px dashed var(--ring-color);
+    transform: translate(-50%,-50%);
+    opacity: 0.55;
+  }
+  .ring-legend{
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.6rem;
+    margin: 0 0 0.6rem;
+  }
+  .ring-chip{
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: var(--surface);
+    border: 1px solid var(--ring-color);
+    border-radius: 999px;
+    padding: 0.25rem 0.4rem 0.25rem 0.75rem;
+    box-shadow: var(--shadow);
+  }
+  .ring-chip .swatch{
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--ring-color);
+    flex: none;
+  }
+  .ring-chip input{
+    border: none;
+    background: transparent;
+    color: var(--ink);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.03em;
+    width: 12ch;
+    padding: 0.1rem 0.1rem;
+  }
+  .ring-chip .add-btn{
+    border: 1px dashed var(--ring-color);
+    background: transparent;
+    color: var(--ring-color);
+    border-radius: 50%;
+    width: 1.3rem; height: 1.3rem;
+    cursor: pointer;
+    font-size: 0.8rem;
+    line-height: 1;
+    display: flex; align-items: center; justify-content: center;
+    flex: none;
+  }
+  .ring-chip .add-btn:hover{ background: var(--ring-color); color: var(--surface); }
+
+  .node{
+    position: absolute;
+    transform: translate(-50%,-50%);
+    background: var(--ring-tint);
+    border: 1.5px solid var(--ring-color);
+    color: var(--ink);
+    border-radius: 999px;
+    padding: 0.4rem 0.8rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: grab;
+    text-align: center;
+    max-width: 11.5rem;
+    box-shadow: var(--shadow);
+    touch-action: none;
+    user-select: none;
+    z-index: 2;
+  }
+  .node:active{ cursor: grabbing; }
+  .node.dragging{ opacity: 0.55; z-index: 10; }
+  .node .star{ margin-left: 0.25em; }
+  .node.expanded{
+    z-index: 20;
+    box-shadow: 0 10px 28px -8px rgba(0,0,0,0.35);
+  }
+
+  .ghost{
+    position: fixed;
+    pointer-events: none;
+    z-index: 50;
+    opacity: 0.9;
+  }
+
+  .editor{
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--surface-raised);
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    box-shadow: 0 12px 32px -8px rgba(0,0,0,0.4);
+    padding: 0.9rem 1rem;
+    width: min(78vw, 280px);
+    z-index: 30;
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+  }
+  .editor input[type=text]{
+    border: 1px solid var(--rule);
+    background: var(--surface);
+    color: var(--ink);
+    border-radius: 6px;
+    padding: 0.4rem 0.55rem;
+    font-family: 'Karla', sans-serif;
+    font-size: 0.85rem;
+    width: 100%;
+  }
+  .editor label.field-label{
+    font-size: 0.66rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ink-faint);
+    font-family: 'IBM Plex Mono', monospace;
+    display: block;
+    margin-bottom: 0.2rem;
+  }
+  .editor .star-row{
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.82rem;
+  }
+  .editor .row-actions{
+    display: flex;
+    justify-content: space-between;
+    margin-top: 0.3rem;
+  }
+  .editor .close-btn, .editor .del-btn{
+    border: 1px solid var(--rule);
+    background: var(--surface);
+    color: var(--ink);
+    border-radius: 6px;
+    padding: 0.3rem 0.65rem;
+    font-size: 0.78rem;
+    cursor: pointer;
+  }
+  .editor .del-btn{ color: var(--warn); border-color: var(--warn-soft); }
+  .editor .del-btn:hover{ background: var(--warn-soft); }
+  .editor .close-btn:hover{ background: var(--moss-soft); }
+  .editor-backdrop{
+    position: fixed; inset: 0; z-index: 25; background: transparent;
+  }
+
+  .core-mark{
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--ink-faint);
+    transform: translate(-50%,-50%);
+    z-index: 1;
+  }
+
+  /* ---- list view ---- */
+  .list-view{ display: flex; flex-direction: column; gap: 1rem; }
+  .list-view[hidden]{ display: none; }
+  .ring-block{
+    background: var(--surface);
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+    padding: 0.8rem 1rem;
+    border-left: 4px solid var(--ring-color);
+  }
+  .ring-block-head{
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 0.6rem;
+  }
+  .ring-block-head input{
+    border: none;
+    background: transparent;
+    color: var(--ink);
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 1rem;
+    padding: 0.1rem 0.2rem;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .ring-block-head input:focus{ outline: none; background: var(--surface-raised); border-radius: 4px; }
+  .list-rows{ display: flex; flex-direction: column; gap: 0.5rem; }
+  .list-row{
+    display: grid;
+    grid-template-columns: 1fr 1fr auto auto;
+    gap: 0.5rem;
+    align-items: center;
+    background: var(--surface-raised);
+    border-radius: 8px;
+    padding: 0.4rem 0.6rem;
+  }
+  @media (max-width: 640px){
+    .list-row{ grid-template-columns: 1fr; }
+  }
+  .list-row input[type=text]{
+    border: 1px solid var(--rule);
+    background: var(--surface);
+    color: var(--ink);
+    border-radius: 6px;
+    padding: 0.3rem 0.5rem;
+    font-size: 0.82rem;
+    width: 100%;
+  }
+  .list-row .star-toggle{
+    border: 1px solid var(--rule);
+    background: var(--surface);
+    border-radius: 6px;
+    padding: 0.3rem 0.5rem;
+    font-size: 0.8rem;
+    cursor: pointer;
+    color: var(--ink-faint);
+    white-space: nowrap;
+  }
+  .list-row .star-toggle.on{ color: var(--amber); border-color: var(--amber); background: var(--amber-soft); }
+  .list-row .del-btn{
+    border: none;
+    background: transparent;
+    color: var(--ink-faint);
+    cursor: pointer;
+    font-size: 0.95rem;
+    padding: 0.2rem 0.4rem;
+  }
+  .list-row .del-btn:hover{ color: var(--warn); }
+  .add-row-btn{
+    align-self: flex-start;
+    border: 1px dashed var(--rule);
+    background: transparent;
+    color: var(--ink-faint);
+    border-radius: 8px;
+    padding: 0.35rem 0.7rem;
+    font-size: 0.8rem;
+    cursor: pointer;
+    margin-top: 0.5rem;
+  }
+  .add-row-btn:hover{ color: var(--ink); border-color: var(--ink-faint); }
+
+  .toast{
+    position: fixed;
+    bottom: 1.2rem;
+    left: 50%;
+    transform: translateX(-50%) translateY(8px);
+    background: var(--ink);
+    color: var(--bg);
+    padding: 0.55rem 1.1rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.18s ease, transform 0.18s ease;
+    max-width: 90vw;
+    text-align: center;
+  }
+  .toast.show{ opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  footer{
+    margin-top: 2rem;
+    padding-top: 1.2rem;
+    border-top: 1px solid var(--rule);
+    font-size: 0.8rem;
+    color: var(--ink-faint);
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+  <header>
+    <div class="eyebrow">House visioning &middot; live tool</div>
+    <h1>Stakeholder proximity map</h1>
+    <p class="subtitle">Who the house is for, arranged by closeness rather than a flat list. Owners sit at the center; everyone else sits at the distance that feels true today &mdash; drag a category in or out to change it, or add one that isn't here yet.</p>
+  </header>
+
+  <div class="toolbar">
+    <div class="view-toggle">
+      <button id="mapViewBtn" class="active">Map</button>
+      <button id="listViewBtn">List</button>
+    </div>
+    <div class="toolbar-actions">
+      <button class="action-btn" id="copyBtn">Copy list</button>
+      <button class="action-btn" id="resetBtn">Reset map</button>
+    </div>
+  </div>
+
+  <p class="hint" id="hintText">Drag a category inward or outward to change how close it sits to the house. Click a category to rename it, add a note, mark it frequent &amp; trusted, or remove it.</p>
+
+  <div id="mapView">
+    <div class="ring-legend" id="ringLegend"></div>
+    <div class="orbit-wrap">
+      <div class="orbit" id="orbit"></div>
+    </div>
+  </div>
+
+  <div class="list-view" id="listView" hidden></div>
+
+  <footer>Stakeholder proximity map &middot; House visioning, session 1 &middot; saved on this device only</footer>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  var STORAGE_KEY = 'house-viz-stakeholder-map-v1';
+
+  function uid(){ return 'n' + Math.random().toString(36).slice(2, 10); }
+
+  var RING_DEFS = [
+    { id: 'core', fraction: 0 },
+    { id: 'r1', fraction: 0.48 },
+    { id: 'r2', fraction: 0.67 },
+    { id: 'r3', fraction: 0.87 }
+  ];
+
+  function defaultState(){
+    return {
+      rings: [
+        { id: 'core', label: 'Core' },
+        { id: 'r1', label: 'Residents' },
+        { id: 'r2', label: 'Extended-stay guests' },
+        { id: 'r3', label: 'Occasional guests' }
+      ],
+      nodes: [
+        { id: uid(), ring: 'core', name: 'Owners', note: '', star: false },
+        { id: uid(), ring: 'r1', name: 'Long-term residents', note: '', star: false },
+        { id: uid(), ring: 'r1', name: 'Short-term residents', note: '', star: false },
+        { id: uid(), ring: 'r1', name: 'Frequent & trusted guests', note: 'e.g. Eva, Matthias', star: true },
+        { id: uid(), ring: 'r2', name: 'Long-term guests', note: '1+ week', star: false },
+        { id: uid(), ring: 'r2', name: 'Short-stay guests', note: 'under 1 week', star: false },
+        { id: uid(), ring: 'r3', name: 'Personal guests', note: '', star: false },
+        { id: uid(), ring: 'r3', name: 'Event guests', note: '', star: false }
+      ]
+    };
+  }
+
+  function loadState(){
+    try{
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if(raw){
+        var parsed = JSON.parse(raw);
+        if(parsed && Array.isArray(parsed.rings) && Array.isArray(parsed.nodes)) return parsed;
+      }
+    }catch(e){}
+    return defaultState();
+  }
+
+  var state = loadState();
+  function saveState(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){} }
+
+  var orbit = document.getElementById('orbit');
+  var ringLegend = document.getElementById('ringLegend');
+  var listView = document.getElementById('listView');
+  var mapView = document.getElementById('mapView');
+  var mapViewBtn = document.getElementById('mapViewBtn');
+  var listViewBtn = document.getElementById('listViewBtn');
+  var hintText = document.getElementById('hintText');
+  var toast = document.getElementById('toast');
+
+  function showToast(msg){
+    toast.textContent = msg;
+    toast.classList.add('show');
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(function(){ toast.classList.remove('show'); }, 2200);
+  }
+
+  function ringById(id){
+    for(var i=0;i<state.rings.length;i++) if(state.rings[i].id === id) return state.rings[i];
+    return null;
+  }
+  function ringIndex(id){
+    for(var i=0;i<state.rings.length;i++) if(state.rings[i].id === id) return i;
+    return 0;
+  }
+  function nodesInRing(ringId){
+    return state.nodes.filter(function(n){ return n.ring === ringId; });
+  }
+  function findNode(id){
+    for(var i=0;i<state.nodes.length;i++) if(state.nodes[i].id === id) return state.nodes[i];
+    return null;
+  }
+
+  var expandedNodeId = null;
+
+  function renderMap(){
+    orbit.innerHTML = '';
+    var rect = orbit.getBoundingClientRect();
+    var size = rect.width || 560;
+    var cx = size / 2, cy = size / 2;
+    var maxR = size / 2 - 10;
+
+    var core = document.createElement('div');
+    core.className = 'core-mark';
+    orbit.appendChild(core);
+
+    RING_DEFS.forEach(function(rd, ringIdx){
+      var ringData = state.rings[ringIdx];
+      if(!ringData) return;
+      var nodes = nodesInRing(ringData.id);
+      var n = nodes.length;
+      var crowding = Math.max(0, n - 3) * (maxR * 0.045);
+      var r = rd.fraction === 0 ? 0 : Math.min(maxR, rd.fraction * maxR + crowding);
+      var colorVar = ringColorVar(ringIdx);
+
+      if(r > 0){
+        var guide = document.createElement('div');
+        guide.className = 'ring-guide';
+        guide.style.width = (r*2) + 'px';
+        guide.style.height = (r*2) + 'px';
+        guide.style.setProperty('--ring-color', colorVar);
+        orbit.appendChild(guide);
+      }
+
+      // nodes
+      nodes.forEach(function(node, i){
+        var startAngle = -90 + ringIdx * 40;
+        var angle = (r === 0) ? 0 : (startAngle + (360 / n) * i) * Math.PI / 180;
+        var spreadR = (r === 0 && n > 1) ? Math.min(46, maxR * 0.14) : r;
+        var x = cx + spreadR * Math.cos(angle);
+        var y = cy + spreadR * Math.sin(angle);
+        if(r === 0 && n <= 1){ x = cx; y = cy; }
+
+        var el = document.createElement('div');
+        el.className = 'node' + (node.id === expandedNodeId ? ' expanded' : '');
+        el.style.left = x + 'px';
+        el.style.top = y + 'px';
+        el.style.setProperty('--ring-color', colorVar);
+        el.style.setProperty('--ring-tint', ringTintVar(ringIdx));
+        el.dataset.id = node.id;
+
+        var nameSpan = document.createElement('span');
+        nameSpan.textContent = node.name;
+        el.appendChild(nameSpan);
+        if(node.star){
+          var star = document.createElement('span');
+          star.className = 'star';
+          star.textContent = '★';
+          el.appendChild(star);
+        }
+        if(node.note){
+          el.title = node.note;
+        }
+
+        el.addEventListener('pointerdown', function(e){ startNodeDrag(e, node.id, el); });
+        orbit.appendChild(el);
+      });
+    });
+
+    renderExpandedEditor();
+  }
+
+  function renderLegend(){
+    ringLegend.innerHTML = '';
+    state.rings.forEach(function(ringData, ringIdx){
+      var chip = document.createElement('div');
+      chip.className = 'ring-chip';
+      chip.style.setProperty('--ring-color', ringColorVar(ringIdx));
+
+      var swatch = document.createElement('span');
+      swatch.className = 'swatch';
+      chip.appendChild(swatch);
+
+      var input = document.createElement('input');
+      input.value = ringData.label;
+      input.addEventListener('input', function(){
+        ringData.label = input.value;
+        saveState();
+        renderListLabelsOnly();
+      });
+      chip.appendChild(input);
+
+      var addBtn = document.createElement('button');
+      addBtn.className = 'add-btn';
+      addBtn.textContent = '+';
+      addBtn.title = 'Add a category to ' + ringData.label;
+      addBtn.addEventListener('click', function(){
+        var node = { id: uid(), ring: ringData.id, name: 'New category', note: '', star: false };
+        state.nodes.push(node);
+        saveState();
+        expandedNodeId = node.id;
+        renderAll();
+      });
+      chip.appendChild(addBtn);
+
+      ringLegend.appendChild(chip);
+    });
+  }
+
+  function ringColorVar(idx){
+    return ['var(--moss)',
+      'color-mix(in srgb, var(--moss) 62%, var(--amber))',
+      'color-mix(in srgb, var(--moss) 28%, var(--amber))',
+      'var(--amber)'][idx] || 'var(--amber)';
+  }
+  function ringTintVar(idx){
+    return ['color-mix(in srgb, var(--moss) 18%, var(--surface))',
+      'color-mix(in srgb, var(--moss) 12%, var(--amber-soft) 18%, var(--surface))',
+      'color-mix(in srgb, var(--amber) 14%, var(--surface))',
+      'var(--amber-soft)'][idx] || 'var(--surface)';
+  }
+
+  function renderExpandedEditor(){
+    var existing = document.querySelector('.editor-backdrop');
+    if(existing) existing.remove();
+    var existingEd = document.querySelector('.editor');
+    if(existingEd) existingEd.remove();
+    if(!expandedNodeId) return;
+    var node = findNode(expandedNodeId);
+    if(!node){ expandedNodeId = null; return; }
+
+    var backdrop = document.createElement('div');
+    backdrop.className = 'editor-backdrop';
+    backdrop.addEventListener('pointerdown', function(){
+      expandedNodeId = null;
+      renderAll();
+    });
+    document.body.appendChild(backdrop);
+
+    var ed = document.createElement('div');
+    ed.className = 'editor';
+
+    var nameLabel = document.createElement('label');
+    nameLabel.className = 'field-label';
+    nameLabel.textContent = 'Category name';
+    var nameInput = document.createElement('input');
+    nameInput.type = 'text';
+    nameInput.value = node.name;
+    nameInput.addEventListener('input', function(){ node.name = nameInput.value; saveState(); syncNodeLabelDom(node); });
+
+    var noteLabel = document.createElement('label');
+    noteLabel.className = 'field-label';
+    noteLabel.textContent = 'Note (examples, definitions)';
+    var noteInput = document.createElement('input');
+    noteInput.type = 'text';
+    noteInput.value = node.note;
+    noteInput.placeholder = 'e.g. Eva, Matthias';
+    noteInput.addEventListener('input', function(){ node.note = noteInput.value; saveState(); });
+
+    var starRow = document.createElement('div');
+    starRow.className = 'star-row';
+    var starCb = document.createElement('input');
+    starCb.type = 'checkbox';
+    starCb.id = 'starcb-' + node.id;
+    starCb.checked = !!node.star;
+    starCb.addEventListener('change', function(){ node.star = starCb.checked; saveState(); });
+    var starLbl = document.createElement('label');
+    starLbl.htmlFor = starCb.id;
+    starLbl.textContent = 'Frequent & trusted';
+    starRow.appendChild(starCb);
+    starRow.appendChild(starLbl);
+
+    var actions = document.createElement('div');
+    actions.className = 'row-actions';
+    var delBtn = document.createElement('button');
+    delBtn.className = 'del-btn';
+    delBtn.textContent = 'Remove';
+    delBtn.addEventListener('click', function(){
+      state.nodes = state.nodes.filter(function(n){ return n.id !== node.id; });
+      expandedNodeId = null;
+      saveState();
+      renderAll();
+    });
+    var closeBtn = document.createElement('button');
+    closeBtn.className = 'close-btn';
+    closeBtn.textContent = 'Done';
+    closeBtn.addEventListener('click', function(){
+      expandedNodeId = null;
+      renderAll();
+    });
+    actions.appendChild(delBtn);
+    actions.appendChild(closeBtn);
+
+    ed.appendChild(nameLabel);
+    ed.appendChild(nameInput);
+    ed.appendChild(noteLabel);
+    ed.appendChild(noteInput);
+    ed.appendChild(starRow);
+    ed.appendChild(actions);
+    orbit.appendChild(ed);
+
+    setTimeout(function(){ nameInput.focus(); nameInput.select(); }, 0);
+  }
+
+  function syncNodeLabelDom(node){
+    var el = orbit.querySelector('.node[data-id="' + node.id + '"] span:first-child');
+    if(el) el.textContent = node.name;
+  }
+
+  // ---- drag to change ring ----
+  var drag = null;
+
+  function startNodeDrag(e, id, nodeEl){
+    e.preventDefault();
+    if(expandedNodeId && expandedNodeId !== id){ expandedNodeId = null; }
+    var rect = nodeEl.getBoundingClientRect();
+    drag = {
+      id: id,
+      moved: false,
+      startX: e.clientX,
+      startY: e.clientY,
+      offsetX: e.clientX - rect.left,
+      offsetY: e.clientY - rect.top,
+      w: rect.width,
+      h: rect.height,
+      el: nodeEl,
+      ghost: null
+    };
+    window.addEventListener('pointermove', onNodeMove);
+    window.addEventListener('pointerup', onNodeUp);
+  }
+
+  function onNodeMove(e){
+    if(!drag) return;
+    var dx = e.clientX - drag.startX, dy = e.clientY - drag.startY;
+    if(!drag.moved && Math.hypot(dx, dy) > 6){
+      drag.moved = true;
+      var ghost = drag.el.cloneNode(true);
+      ghost.className = 'node ghost';
+      ghost.style.width = drag.w + 'px';
+      document.body.appendChild(ghost);
+      drag.ghost = ghost;
+      drag.el.classList.add('dragging');
+    }
+    if(drag.moved && drag.ghost){
+      drag.ghost.style.left = (e.clientX - drag.offsetX) + 'px';
+      drag.ghost.style.top = (e.clientY - drag.offsetY) + 'px';
+    }
+  }
+
+  function onNodeUp(e){
+    if(!drag) return;
+    window.removeEventListener('pointermove', onNodeMove);
+    window.removeEventListener('pointerup', onNodeUp);
+
+    var node = findNode(drag.id);
+    if(drag.ghost) drag.ghost.remove();
+    drag.el.classList.remove('dragging');
+
+    if(!drag.moved){
+      expandedNodeId = (expandedNodeId === drag.id) ? null : drag.id;
+      drag = null;
+      renderAll();
+      return;
+    }
+
+    if(node){
+      var rect = orbit.getBoundingClientRect();
+      var cx = rect.left + rect.width/2, cy = rect.top + rect.height/2;
+      var maxR = rect.width/2 - 10;
+      var dist = Math.hypot(e.clientX - cx, e.clientY - cy);
+      var frac = maxR > 0 ? dist / maxR : 0;
+
+      var best = 0, bestDelta = Infinity;
+      RING_DEFS.forEach(function(rd, i){
+        var delta = Math.abs(frac - rd.fraction);
+        if(delta < bestDelta){ bestDelta = delta; best = i; }
+      });
+      var targetRing = state.rings[best];
+      if(targetRing) node.ring = targetRing.id;
+      saveState();
+    }
+    drag = null;
+    renderAll();
+  }
+
+  // ---- list view ----
+  function renderList(){
+    listView.innerHTML = '';
+    state.rings.forEach(function(ringData, ringIdx){
+      var block = document.createElement('div');
+      block.className = 'ring-block';
+      block.style.setProperty('--ring-color', ringColorVar(ringIdx));
+
+      var head = document.createElement('div');
+      head.className = 'ring-block-head';
+      var labelInput = document.createElement('input');
+      labelInput.value = ringData.label;
+      labelInput.addEventListener('input', function(){ ringData.label = labelInput.value; saveState(); });
+      head.appendChild(labelInput);
+      block.appendChild(head);
+
+      var rows = document.createElement('div');
+      rows.className = 'list-rows';
+      nodesInRing(ringData.id).forEach(function(node){
+        rows.appendChild(makeListRow(node));
+      });
+      block.appendChild(rows);
+
+      var addBtn = document.createElement('button');
+      addBtn.className = 'add-row-btn';
+      addBtn.textContent = '+ Add category';
+      addBtn.addEventListener('click', function(){
+        var node = { id: uid(), ring: ringData.id, name: 'New category', note: '', star: false };
+        state.nodes.push(node);
+        saveState();
+        renderList();
+        var lastInput = block.querySelector('.list-rows .list-row:last-child input[type=text]');
+        if(lastInput){ lastInput.focus(); lastInput.select(); }
+      });
+      block.appendChild(addBtn);
+
+      listView.appendChild(block);
+    });
+  }
+
+  function renderListLabelsOnly(){
+    if(!listView.hidden) renderList();
+  }
+
+  function makeListRow(node){
+    var row = document.createElement('div');
+    row.className = 'list-row';
+
+    var nameInput = document.createElement('input');
+    nameInput.type = 'text';
+    nameInput.value = node.name;
+    nameInput.addEventListener('input', function(){ node.name = nameInput.value; saveState(); });
+
+    var noteInput = document.createElement('input');
+    noteInput.type = 'text';
+    noteInput.value = node.note;
+    noteInput.placeholder = 'note / example';
+    noteInput.addEventListener('input', function(){ node.note = noteInput.value; saveState(); });
+
+    var starBtn = document.createElement('button');
+    starBtn.className = 'star-toggle' + (node.star ? ' on' : '');
+    starBtn.textContent = '★ trusted';
+    starBtn.addEventListener('click', function(){
+      node.star = !node.star;
+      saveState();
+      renderList();
+    });
+
+    var delBtn = document.createElement('button');
+    delBtn.className = 'del-btn';
+    delBtn.textContent = '×';
+    delBtn.addEventListener('click', function(){
+      state.nodes = state.nodes.filter(function(n){ return n.id !== node.id; });
+      saveState();
+      renderList();
+    });
+
+    row.appendChild(nameInput);
+    row.appendChild(noteInput);
+    row.appendChild(starBtn);
+    row.appendChild(delBtn);
+    return row;
+  }
+
+  function renderAll(){
+    renderLegend();
+    renderMap();
+    if(!listView.hidden) renderList();
+  }
+
+  mapViewBtn.addEventListener('click', function(){
+    mapViewBtn.classList.add('active');
+    listViewBtn.classList.remove('active');
+    mapView.hidden = false;
+    listView.hidden = true;
+    hintText.textContent = 'Drag a category inward or outward to change how close it sits to the house. Click a category to rename it, add a note, mark it frequent & trusted, or remove it.';
+    renderMap();
+  });
+  listViewBtn.addEventListener('click', function(){
+    listViewBtn.classList.add('active');
+    mapViewBtn.classList.remove('active');
+    mapView.hidden = true;
+    listView.hidden = false;
+    hintText.textContent = 'The same categories as a plain list, grouped by ring. Good for reading off names and notes quickly.';
+    renderList();
+  });
+
+  document.getElementById('copyBtn').addEventListener('click', function(){
+    var lines = ['Stakeholder groups, by closeness to the house', ''];
+    state.rings.forEach(function(ringData){
+      var nodes = nodesInRing(ringData.id);
+      if(!nodes.length) return;
+      lines.push(ringData.label + ':');
+      nodes.forEach(function(node){
+        lines.push('  - ' + node.name + (node.star ? ' (frequent & trusted)' : '') + (node.note ? '  [' + node.note + ']' : ''));
+      });
+      lines.push('');
+    });
+    var text = lines.join('\n');
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(function(){ showToast('List copied to clipboard'); })
+        .catch(function(){ showToast('Could not copy — select and copy manually'); });
+    } else {
+      showToast('Clipboard not available on this device');
+    }
+  });
+
+  var resetArmed = false;
+  var resetBtn = document.getElementById('resetBtn');
+  resetBtn.addEventListener('click', function(){
+    if(!resetArmed){
+      resetArmed = true;
+      resetBtn.textContent = 'Click again to reset';
+      setTimeout(function(){ resetArmed = false; resetBtn.textContent = 'Reset map'; }, 3000);
+      return;
+    }
+    resetArmed = false;
+    resetBtn.textContent = 'Reset map';
+    expandedNodeId = null;
+    state = defaultState();
+    saveState();
+    renderAll();
+    showToast('Map reset to defaults');
+  });
+
+  window.addEventListener('resize', function(){ renderMap(); });
+
+  renderAll();
+})();
+</script>
+</body>
+</html>
