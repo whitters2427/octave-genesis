@@ -148,13 +148,21 @@
   .poles{
     display: flex;
     justify-content: space-between;
-    font-family: 'Fraunces', serif;
-    font-weight: 600;
-    font-size: 1.15rem;
+    align-items: flex-start;
+    gap: 1rem;
     margin-bottom: 1rem;
   }
-  .poles .left{ color: var(--ink); }
-  .poles .right{ color: var(--ink); text-align: right; }
+  .pole-block{ display: flex; flex-direction: column; max-width: 60%; }
+  .pole-block.right{ align-items: flex-end; text-align: right; }
+  .pole-name{ font-family: 'Fraunces', serif; font-weight: 600; font-size: 1.15rem; color: var(--ink); }
+  .pole-desc{
+    font-family: 'Karla', sans-serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: 0.8rem;
+    color: var(--ink-faint);
+    margin-top: 0.2rem;
+  }
 
   .track-wrap{ position: relative; margin: 0.5rem 0 1.6rem; }
   .track{
@@ -354,8 +362,14 @@
 
   <div class="focus-card">
     <div class="poles">
-      <span class="left" id="poleLeft"></span>
-      <span class="right" id="poleRight"></span>
+      <div class="pole-block left">
+        <span class="pole-name" id="poleLeft"></span>
+        <span class="pole-desc" id="poleLeftDesc"></span>
+      </div>
+      <div class="pole-block right">
+        <span class="pole-name" id="poleRight"></span>
+        <span class="pole-desc" id="poleRightDesc"></span>
+      </div>
     </div>
     <div class="track-wrap">
       <div class="track" id="track"></div>
@@ -393,12 +407,12 @@
   var STORAGE_KEY = 'house-viz-spectrum-tool-v1';
   var PERSON_COLORS = ['var(--p1)','var(--p2)','var(--p3)','var(--p4)'];
   var DEFAULT_SPECTRUMS = [
-    { left: 'Intimacy', right: 'Community' },
-    { left: 'Aesthetic', right: 'Authentic' },
-    { left: 'Practical', right: 'Dreamlike' },
-    { left: 'Democratic', right: 'Decisive' },
-    { left: 'Permeability', right: 'Sanctuary' },
-    { left: 'Structure', right: 'Spontaneity' }
+    { left: 'Intimacy', right: 'Community', leftDesc: 'closeness among a small, familiar few', rightDesc: 'belonging shared across the whole group' },
+    { left: 'Aesthetic', right: 'Authentic', leftDesc: 'curated to look and feel a certain way', rightDesc: "true to what's actually happening, unpolished" },
+    { left: 'Practical', right: 'Dreamlike', leftDesc: "grounded in what's realistic and workable", rightDesc: 'atmospheric, imaginative, larger than life' },
+    { left: 'Democratic', right: 'Decisive', leftDesc: "decided together, with everyone weighing in", rightDesc: 'decided quickly by one or a few' },
+    { left: 'Permeability', right: 'Sanctuary', leftDesc: 'open, easy for outsiders to come and go', rightDesc: 'protected, closed off from the outside world' },
+    { left: 'Structure', right: 'Spontaneity', leftDesc: 'planned and consistent, the same each time', rightDesc: 'improvised and different, shaped in the moment' }
   ];
 
   var CURRENT_DEFAULT_OWNERS = ['Luna','Nicole','Voyta','Juriy'];
@@ -455,6 +469,8 @@
   var nextBtn = document.getElementById('nextBtn');
   var poleLeft = document.getElementById('poleLeft');
   var poleRight = document.getElementById('poleRight');
+  var poleLeftDesc = document.getElementById('poleLeftDesc');
+  var poleRightDesc = document.getElementById('poleRightDesc');
   var track = document.getElementById('track');
   var avgReadout = document.getElementById('avgReadout');
   var peopleEl = document.getElementById('people');
@@ -499,6 +515,8 @@
     nextBtn.disabled = state.current === state.spectrums.length - 1;
     poleLeft.textContent = s.left;
     poleRight.textContent = s.right;
+    poleLeftDesc.textContent = DEFAULT_SPECTRUMS[state.current].leftDesc;
+    poleRightDesc.textContent = DEFAULT_SPECTRUMS[state.current].rightDesc;
     noteInput.value = s.note || '';
 
     track.querySelectorAll('.marker, .avg-marker').forEach(function(el){ el.remove(); });
