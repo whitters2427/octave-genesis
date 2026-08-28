@@ -23,6 +23,7 @@
     --p2: #a6741f;
     --p3: #a5502f;
     --p4: #3f6b74;
+    --warn: #b3402c;
   }
   @media (prefers-color-scheme: dark){
     :root:not([data-theme="light"]){
@@ -42,6 +43,7 @@
       --p2: #dba949;
       --p3: #d98a63;
       --p4: #7fb8c2;
+      --warn: #e3765a;
     }
   }
   :root[data-theme="dark"]{
@@ -61,6 +63,7 @@
     --p2: #dba949;
     --p3: #d98a63;
     --p4: #7fb8c2;
+    --warn: #e3765a;
   }
 
   *{ box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -120,10 +123,12 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem;
     margin: 1.6rem 0 0.8rem;
   }
   .progress-label{ font-size: 0.8rem; color: var(--ink-faint); font-family: 'IBM Plex Mono', monospace; letter-spacing: 0.03em; }
-  .nav-btns{ display: flex; gap: 0.5rem; }
+  .nav-btns{ display: flex; gap: 0.5rem; flex-wrap: wrap; }
   .nav-btn{
     border: 1px solid var(--rule);
     background: var(--surface-raised);
@@ -152,9 +157,19 @@
     gap: 1rem;
     margin-bottom: 1rem;
   }
-  .pole-block{ display: flex; flex-direction: column; max-width: 60%; }
-  .pole-block.right{ align-items: flex-end; text-align: right; }
-  .pole-name{ font-family: 'Fraunces', serif; font-weight: 600; font-size: 1.15rem; color: var(--ink); }
+  .pole-block{ display: flex; flex-direction: column; max-width: 60%; flex: 1 1 auto; }
+  .pole-block.right{ align-items: flex-end; }
+  .pole-name, .pole-desc{
+    border: none;
+    background: transparent;
+    color: var(--ink);
+    padding: 0.1rem 0.15rem;
+    border-radius: 4px;
+    width: 100%;
+  }
+  .pole-block.left .pole-name, .pole-block.left .pole-desc{ text-align: left; }
+  .pole-block.right .pole-name, .pole-block.right .pole-desc{ text-align: right; }
+  .pole-name{ font-family: 'Fraunces', serif; font-weight: 600; font-size: 1.15rem; }
   .pole-desc{
     font-family: 'Karla', sans-serif;
     font-style: italic;
@@ -163,6 +178,24 @@
     color: var(--ink-faint);
     margin-top: 0.2rem;
   }
+  .pole-name:hover, .pole-desc:hover{ background: var(--surface-raised); }
+  .pole-name:focus, .pole-desc:focus{ outline: 2px solid var(--amber); outline-offset: 1px; background: var(--surface-raised); }
+  .pole-desc::placeholder{ color: var(--ink-faint); opacity: 0.6; }
+
+  .spectrum-controls{
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 0.6rem;
+  }
+  .remove-spectrum-btn{
+    border: none;
+    background: transparent;
+    color: var(--ink-faint);
+    font-size: 0.78rem;
+    cursor: pointer;
+    padding: 0.2rem 0.3rem;
+  }
+  .remove-spectrum-btn:hover{ color: var(--warn); }
 
   .track-wrap{ position: relative; margin: 0.5rem 0 1.6rem; }
   .track{
@@ -357,18 +390,19 @@
     <div class="nav-btns">
       <button class="nav-btn" id="prevBtn">&larr; Prev</button>
       <button class="nav-btn" id="nextBtn">Next &rarr;</button>
+      <button class="nav-btn" id="addBtn">+ Add spectrum</button>
     </div>
   </div>
 
   <div class="focus-card">
     <div class="poles">
       <div class="pole-block left">
-        <span class="pole-name" id="poleLeft"></span>
-        <span class="pole-desc" id="poleLeftDesc"></span>
+        <input class="pole-name" id="poleLeft" aria-label="Left pole name">
+        <input class="pole-desc" id="poleLeftDesc" placeholder="optional description">
       </div>
       <div class="pole-block right">
-        <span class="pole-name" id="poleRight"></span>
-        <span class="pole-desc" id="poleRightDesc"></span>
+        <input class="pole-name" id="poleRight" aria-label="Right pole name">
+        <input class="pole-desc" id="poleRightDesc" placeholder="optional description">
       </div>
     </div>
     <div class="track-wrap">
@@ -384,6 +418,10 @@
     <div class="qualifier">
       <label for="noteInput">Anything worth flagging on this one?</label>
       <input type="text" id="noteInput" placeholder="e.g. real split between two people, worth a session 2 flag">
+    </div>
+
+    <div class="spectrum-controls">
+      <button class="remove-spectrum-btn" id="removeSpectrumBtn">Remove this spectrum</button>
     </div>
   </div>
 
@@ -427,15 +465,24 @@
     });
   }
 
+  function backfillDesc(spectrum){
+    if(typeof spectrum.leftDesc === 'string' && typeof spectrum.rightDesc === 'string') return spectrum;
+    var match = DEFAULT_SPECTRUMS.find(function(d){ return d.left === spectrum.left && d.right === spectrum.right; });
+    spectrum.leftDesc = typeof spectrum.leftDesc === 'string' ? spectrum.leftDesc : (match ? match.leftDesc : '');
+    spectrum.rightDesc = typeof spectrum.rightDesc === 'string' ? spectrum.rightDesc : (match ? match.rightDesc : '');
+    return spectrum;
+  }
+
   function loadState(){
     try{
       var raw = localStorage.getItem(STORAGE_KEY);
       if(raw){
         var parsed = JSON.parse(raw);
-        if(parsed && Array.isArray(parsed.spectrums) && parsed.spectrums.length === 6 && Array.isArray(parsed.owners)){
+        if(parsed && Array.isArray(parsed.spectrums) && parsed.spectrums.length >= 1 && Array.isArray(parsed.owners)){
           if(isStaleOwnerSet(parsed.owners)){
             parsed.owners = CURRENT_DEFAULT_OWNERS.slice();
           }
+          parsed.spectrums.forEach(backfillDesc);
           return parsed;
         }
       }
@@ -444,7 +491,7 @@
       owners: CURRENT_DEFAULT_OWNERS.slice(),
       current: 0,
       spectrums: DEFAULT_SPECTRUMS.map(function(s){
-        return { left: s.left, right: s.right, scores: [null,null,null,null], note: '' };
+        return { left: s.left, right: s.right, leftDesc: s.leftDesc, rightDesc: s.rightDesc, scores: [null,null,null,null], note: '' };
       })
     };
   }
@@ -467,6 +514,8 @@
   var progressLabel = document.getElementById('progressLabel');
   var prevBtn = document.getElementById('prevBtn');
   var nextBtn = document.getElementById('nextBtn');
+  var addBtn = document.getElementById('addBtn');
+  var removeSpectrumBtn = document.getElementById('removeSpectrumBtn');
   var poleLeft = document.getElementById('poleLeft');
   var poleRight = document.getElementById('poleRight');
   var poleLeftDesc = document.getElementById('poleLeftDesc');
@@ -510,14 +559,15 @@
 
   function renderFocus(){
     var s = state.spectrums[state.current];
-    progressLabel.textContent = 'SPECTRUM ' + (state.current + 1) + ' / 6';
+    progressLabel.textContent = 'SPECTRUM ' + (state.current + 1) + ' / ' + state.spectrums.length;
     prevBtn.disabled = state.current === 0;
     nextBtn.disabled = state.current === state.spectrums.length - 1;
-    poleLeft.textContent = s.left;
-    poleRight.textContent = s.right;
-    poleLeftDesc.textContent = DEFAULT_SPECTRUMS[state.current].leftDesc;
-    poleRightDesc.textContent = DEFAULT_SPECTRUMS[state.current].rightDesc;
+    poleLeft.value = s.left;
+    poleRight.value = s.right;
+    poleLeftDesc.value = s.leftDesc || '';
+    poleRightDesc.value = s.rightDesc || '';
     noteInput.value = s.note || '';
+    removeSpectrumBtn.style.visibility = state.spectrums.length > 1 ? 'visible' : 'hidden';
 
     track.querySelectorAll('.marker, .avg-marker').forEach(function(el){ el.remove(); });
     s.scores.forEach(function(v, i){
@@ -640,6 +690,47 @@
   noteInput.addEventListener('input', function(){
     state.spectrums[state.current].note = noteInput.value;
     saveState();
+  });
+
+  poleLeft.addEventListener('input', function(){
+    state.spectrums[state.current].left = poleLeft.value;
+    saveState();
+    renderSummary();
+  });
+  poleRight.addEventListener('input', function(){
+    state.spectrums[state.current].right = poleRight.value;
+    saveState();
+    renderSummary();
+  });
+  poleLeftDesc.addEventListener('input', function(){
+    state.spectrums[state.current].leftDesc = poleLeftDesc.value;
+    saveState();
+  });
+  poleRightDesc.addEventListener('input', function(){
+    state.spectrums[state.current].rightDesc = poleRightDesc.value;
+    saveState();
+  });
+
+  addBtn.addEventListener('click', function(){
+    state.spectrums.push({ left: 'New left', right: 'New right', leftDesc: '', rightDesc: '', scores: [null,null,null,null], note: '' });
+    state.current = state.spectrums.length - 1;
+    saveState();
+    renderAll();
+    poleLeft.focus();
+    poleLeft.select();
+    showToast('Spectrum added');
+  });
+
+  removeSpectrumBtn.addEventListener('click', function(){
+    if(state.spectrums.length <= 1){
+      showToast('Keep at least one spectrum');
+      return;
+    }
+    state.spectrums.splice(state.current, 1);
+    state.current = Math.min(state.current, state.spectrums.length - 1);
+    saveState();
+    renderAll();
+    showToast('Spectrum removed');
   });
 
   document.getElementById('resetBtn').addEventListener('click', function(){
