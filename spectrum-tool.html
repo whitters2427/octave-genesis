@@ -445,12 +445,13 @@
   var STORAGE_KEY = 'house-viz-spectrum-tool-v1';
   var PERSON_COLORS = ['var(--p1)','var(--p2)','var(--p3)','var(--p4)'];
   var DEFAULT_SPECTRUMS = [
-    { left: 'Intimacy', right: 'Community', leftDesc: 'closeness among a small, familiar few', rightDesc: 'belonging shared across the whole group' },
+    { left: 'Intimacy', right: 'Gregariousness', leftDesc: 'closeness among a small, familiar few', rightDesc: 'outgoing and sociable, thriving in lively company' },
     { left: 'Aesthetic', right: 'Authentic', leftDesc: 'curated to look and feel a certain way', rightDesc: "true to what's actually happening, unpolished" },
-    { left: 'Practical', right: 'Dreamlike', leftDesc: "grounded in what's realistic and workable", rightDesc: 'atmospheric, imaginative, larger than life' },
+    { left: 'Practical', right: 'Dreamlike', leftDesc: "grounded in what's realistic and repeatable", rightDesc: 'atmospheric, imaginative, larger than life' },
     { left: 'Democratic', right: 'Decisive', leftDesc: "decided together, with everyone weighing in", rightDesc: 'decided quickly by one or a few' },
     { left: 'Permeability', right: 'Sanctuary', leftDesc: 'open, easy for outsiders to come and go', rightDesc: 'protected, closed off from the outside world' },
-    { left: 'Structure', right: 'Spontaneity', leftDesc: 'planned and consistent, the same each time', rightDesc: 'improvised and different, shaped in the moment' }
+    { left: 'Structure', right: 'Spontaneity', leftDesc: 'planned and consistent, repeatable', rightDesc: 'improvised and different, shaped in the moment' },
+    { left: 'Storytelling', right: 'Felt Moments', leftDesc: 'shaped by narrative, told and passed along', rightDesc: 'shaped by sensation, lived in the moment' }
   ];
 
   var CURRENT_DEFAULT_OWNERS = ['Luna','Nicole','Voyta','Juriy'];
@@ -482,7 +483,27 @@
           if(isStaleOwnerSet(parsed.owners)){
             parsed.owners = CURRENT_DEFAULT_OWNERS.slice();
           }
+          parsed.spectrums.forEach(function(s){
+            if(s.left === 'Intimacy' && s.right === 'Community'){
+              s.right = 'Gregariousness';
+              if(s.rightDesc === 'belonging shared across the whole group'){
+                s.rightDesc = 'outgoing and sociable, thriving in lively company';
+              }
+            }
+            if(s.left === 'Practical' && s.leftDesc === "grounded in what's realistic and workable"){
+              s.leftDesc = "grounded in what's realistic and repeatable";
+            }
+            if(s.left === 'Structure' && s.leftDesc === 'planned and consistent, the same each time'){
+              s.leftDesc = 'planned and consistent, repeatable';
+            }
+          });
           parsed.spectrums.forEach(backfillDesc);
+          DEFAULT_SPECTRUMS.forEach(function(d){
+            var exists = parsed.spectrums.some(function(s){ return s.left === d.left && s.right === d.right; });
+            if(!exists){
+              parsed.spectrums.push({ left: d.left, right: d.right, leftDesc: d.leftDesc, rightDesc: d.rightDesc, scores: [null,null,null,null], note: '' });
+            }
+          });
           return parsed;
         }
       }
